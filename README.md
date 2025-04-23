@@ -126,8 +126,13 @@ This repository provides a complete toolkit for extracting, normalizing, and vis
 - For plotting/editing: OriginLab (optional), Adobe Illustrator (optional)
 
 ### Installation (recommended)
+To install the required packages:
 ```
-pip install numpy pandas scikit-image matplotlib tifffile
+pip install --upgrade -r requirements.txt
+```
+To update the required packages while under development:
+```
+pip freeze | sed 's/==/>=/' > requirements.txt
 ```
 
 ---
