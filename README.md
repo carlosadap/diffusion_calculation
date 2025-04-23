@@ -107,10 +107,10 @@ This repository provides a complete toolkit for extracting, normalizing, and vis
 
 ## Priority Features & Roadmap
 
-1. **[ ]** Import `.txt`, output normalized values (Python first).
-2. **[ ]** Calculate diffusion distances based on user-defined thresholds.
+1. **[X]** Import `.txt`, output normalized values (Python first).
+2. **[X]** Calculate diffusion distances based on user-defined thresholds.
 3. **[ ]** Export graphics in `.svg` format (Adobe Illustrator compatible).
-4. **[ ]** Option to fully replace MATLAB with Python for all analysis steps.
+4. **[ ]** Option to fully analyze with Python for all steps.
 
 ---
 
