@@ -1,0 +1,220 @@
+clear;
+close all;
+
+% ------------------------     DIFFUSION ANALYSIS SCRIPT     ------------------------
+% MATLAB script for setting up a region of interest (ROI) in a series of pictures
+% of FITC Dextran diffusion and return the mean intensity of said zone in
+% each picture (for a rectangle ROI) or the intensity along the ROI (for a line ROI)
+%
+% Coded by: Guillaume Coindreau
+% VERSION:  v2
+% Changes from previous version: Setup done on the brightfield picture (first picture of the data set) 
+% -----------------------------------------------------------------------------------
+
+
+% IMPORTANT INFORMATION BEFORE USING THIS SCRIPT:
+%
+% --> Always take a brightfield image of the chip after doing the diffuion
+%     timelapse, the script uses it to setup the ROIs.
+% --> Save your pictures in a different folder per chip in the same directory as the matlab
+%     script.
+% --> Make sure that the pictures are sorted from first timepoint to last
+%     timepoint in the folder, and that the brightfield picture is the first one!
+% --> The setup is done on the brightfield image of the series (easiest to define the ROIS)
+% --> For the setup of the ROIs, first setup the ROI inside the lumen for
+%     the intensity at t0 by clicking on "Setup the ROIs" button and then
+%     clicking on the image to setup the ROI polygon at the desired spot.
+%     To validate, make sure you closed the polgon and then double click on it.
+%     Then, repeat the same process for the diffusion zone ROIs (there should be 2 above and below the lumen)
+% --> Once all the ROIsre setup make sure the desired folder name is
+%     entered in the "Name of the folder with pictures" field.
+% --> Press the "Start analysis over dataset" button. The data will then appear
+%     in a text file (named after what was entered in the "Name of the data
+%     file" field).
+
+
+
+
+% ----------------------------------------------------------
+% ------------------------   CODE   ------------------------
+% ----------------------------------------------------------
+
+% Create a UI figure and grid
+fig = uifigure('Name', 'Diffusion UI');
+grid = uigridlayout(fig, [6 2]);
+grid.RowHeight = {20, 20, 20, 20, 20,'1x'}; % '1x' sets the rows and columns height as adaptative
+grid.ColumnWidth = {'1x','1x'};
+
+
+% Create labels, buttons, and other stuff
+lbl1 = uilabel(grid, 'Text', 'ROI type:', 'FontSize', 14, 'HorizontalAlignment', 'left');
+lbl1.Layout.Row = 1;
+lbl1.Layout.Column = 1; 
+
+dd = uidropdown(grid, "Items", ["Line","Rectangle"]);
+dd.Layout.Row = 1;
+dd.Layout.Column = 2; 
+
+lbl2 = uilabel(grid, 'Text', 'Name of the folder with pictures:', 'FontSize', 14, 'HorizontalAlignment', 'left');
+lbl2.Layout.Row = 2;
+lbl2.Layout.Column = 1; 
+
+txt1 = uitextarea(grid, 'Value', 'chip_0-0_FITC_xh');
+txt1.Layout.Row = 2;
+txt1.Layout.Column = 2;
+
+lbl2 = uilabel(grid, 'Text', 'Name of the data file:', 'FontSize', 14, 'HorizontalAlignment', 'left');
+lbl2.Layout.Row = 3;
+lbl2.Layout.Column = 1; 
+
+txt2 = uitextarea(grid, 'Value', 'chip_0-100_results');
+txt2.Layout.Row = 3;
+txt2.Layout.Column = 2;
+
+setupBtn = uibutton(grid, 'Text', 'Setup the ROI', 'ButtonPushedFcn', @setupBtnPushed);
+setupBtn.Layout.Row = 4;
+setupBtn.Layout.Column = [1 2];
+
+calcBtn = uibutton(grid, 'Text', 'Start analysis over dataset', 'ButtonPushedFcn', @calcBtnPushed);
+calcBtn.Layout.Row = 5;
+calcBtn.Layout.Column = [1 2];
+
+img = uiimage(grid, "ImageSource", 'AMBER logo.jpg', 'URL', 'https://www.utwente.nl/en/eemcs/amber/');
+img.Layout.Row = 6;
+img.Layout.Column = [1 2];
+
+global roi_pos; % For accessing and modifying the value from all callbacks
+
+% Store data in UserData for callback functions
+fig.UserData = struct("ROIselec",dd,"FolderName",txt1,"DataName",txt2);
+
+
+% ----------------------------------------------
+% ------------- Callback functions -------------
+% ----------------------------------------------
+
+% Initialization button
+function setupBtnPushed(src, event)
+    disp('Setting UP the ROI, double click on the ROI to validate');
+    global roi_pos;
+    temp_fig = ancestor(src,"figure","toplevel"); % Allows to access the UserData of the main figure (but NOT to change it, hence the use of "global" for roi_pos)
+    data = temp_fig.UserData;
+    ROI = data.ROIselec.Value;
+    currentFolder = pwd; % returns current folder
+    picsfolder = char(data.FolderName.Value);
+
+    fileFolder = fullfile(currentFolder, picsfolder);
+    dirOutput = dir(fileFolder);
+    fileNames = {dirOutput.name}; % Returns an array of the file names from the data folder
+    numFiles = numel(fileNames); % Returns the amount of files in the data folder
+    
+    initfile = char(fileNames(3)); % Uses the first file of the data folder for initialization (brightfiled picture)
+
+    img = imread(fullfile(currentFolder, picsfolder, initfile));
+    figure();
+    imshow(img);
+    text(5,25,'Double click the ROI to validate','Color','white','FontSize',14);
+
+    switch ROI
+        case ('Rectangle')
+            roi = drawrectangle;
+        case ('Line')
+            roi = drawline;
+        otherwise
+            disp('ERROR with ROI selection');
+    end
+
+    wait(roi);
+    roi_pos = roi.Position;
+    disp('Position of the ROI:');
+    disp(roi_pos);
+    close figure 1;
+
+end
+
+% Analysis button
+function calcBtnPushed(src, event)
+    disp('Analysing the dataset');
+    
+    global roi_pos;
+    temp_fig = ancestor(src,"figure","toplevel");
+    data = temp_fig.UserData;
+    ROI = data.ROIselec.Value;
+    currentFolder = pwd;
+    picsfolder = char(data.FolderName.Value);
+    
+    fileFolder = fullfile(currentFolder, picsfolder);
+    dirOutput = dir(fileFolder);
+    fileNames = {dirOutput.name};
+    numFiles = numel(fileNames);
+    
+    datafileName = char(data.DataName.Value);
+    datafileName = [datafileName '.txt'];
+    fileID = fopen(datafileName, 'w');
+    
+    switch ROI
+        case ('Rectangle')
+            xmin = round(roi_pos(1));
+            ymin = round(roi_pos(2));
+            width = round(roi_pos(3));
+            height = round(roi_pos(4));
+
+            for i = 4:numFiles  % Iterates over every image time point in the datafile to calculate the mean intensity in the ROI
+            % Need to start from 4 cause dir().names returns '.' and '..' as first two names in fileNames and brightfield is the third one
+                
+                currentimg = char(fileNames(i));
+                img = imread(fullfile(currentFolder, picsfolder, currentimg));
+                img = im2gray(img);
+                values = [];
+
+                for i = ymin:ymin+height
+                    for j = xmin:xmin+width
+                        values = [values img(i,j)];
+                    end
+                end
+                
+                writematrix(mean(values), datafileName, 'WriteMode','append');
+
+            end
+            
+        case ('Line')
+            n = inputdlg('Enter the number of data points','Number of data points', [1 50], {'100'}); % Allows to enter the number of data points along the line
+            n = str2double(n);
+            
+            x = round(linspace(roi_pos(1,1), roi_pos(2,1), n));
+            y = round(linspace(roi_pos(1,2), roi_pos(2,2), n)); % Stocks the x and y coordinates of the data points in two arrays
+            
+            for i = 4:numFiles  % Iterates over every image time point in the datafile to calculate the light intensity along the line
+            % Need to start from 4 cause dir().names returns '.' and '..' as first two names in fileNames and brightfield is the third one
+                
+                char(fileNames(i)) %displays the names of the files that
+                %are analysed in order of analysis remove% if you want to see
+                currentimg = char(fileNames(i));
+                img = imread(fullfile(currentFolder, picsfolder, currentimg));
+                img = im2gray(img);
+                values = [];
+                
+                for k = 1:length(x)
+                    values = [values img(y(k),x(k))]; % Need to flip x and y since the coordinates of a matrix are inverted
+                end
+                
+                writematrix(values, datafileName, 'WriteMode','append');
+
+            end
+
+            fclose(fileID);
+            
+
+        otherwise
+            disp('ERROR with ROI selection');
+    end
+
+    disp('Analysis done');
+
+end
+
+
+
+
+
+
