@@ -174,17 +174,16 @@ class FluorescenceAnalyzer:
             time_interval = 0.25
             self.time_interval.set(time_interval)
 
-        global_idx = 0  # Track blocks across all files
         for file_path in file_paths:
             with open(file_path, 'r') as file:
                 content = file.read().strip()
                 blocks = [b.strip() for b in content.split('\n') if b.strip()]
-                for block in blocks:
+                for idx, block in enumerate(blocks):  # Use per-file index
                     values = list(map(float, block.split(',')))
                     source = np.mean(values[:5])
                     sink = np.mean(values[-5:])
                     normalized = [(x - sink)/(source - sink)*100 for x in values]
-                    hours = global_idx * time_interval
+                    hours = idx * time_interval  # Time based on block position in file
                     if hours not in self.time_groups:
                         self.time_groups[hours] = []
                     self.time_groups[hours].append({
@@ -194,7 +193,6 @@ class FluorescenceAnalyzer:
                         'source': source,
                         'sink': sink
                     })
-                    global_idx += 1
 
     def get_max_distance_from_data(self):
         if not self.time_groups:
@@ -400,18 +398,26 @@ class FluorescenceAnalyzer:
                 f.write("# Time(h)\tDistance(um)\tRawMean\tRawStd\tNormMean\tNormStd\n")
                 for t in sorted(self.time_groups.keys()):
                     group = self.time_groups[t]
-                    distances = group[0]['distance']
-                    raw_arrays = np.array([rep['raw'] for rep in group])
-                    norm_arrays = np.array([rep['normalized'] for rep in group])
-                    raw_mean = np.mean(raw_arrays, axis=0)
-                    raw_std = np.std(raw_arrays, axis=0)
-                    norm_mean = np.mean(norm_arrays, axis=0)
-                    norm_std = np.std(norm_arrays, axis=0)
-                    for d, m_r, s_r, m_n, s_n in zip(distances, raw_mean, raw_std, norm_mean, norm_std):
-                        f.write(f"{t:.2f}\t{d:.1f}\t{m_r:.6f}\t{s_r:.6f}\t{m_n:.6f}\t{s_n:.6f}\n")
+                    # Find all unique distances for this time point across all replicates
+                    all_distances = sorted(set(d for rep in group for d in rep['distance']))
+                    for d in all_distances:
+                        raw_vals = []
+                        norm_vals = []
+                        for rep in group:
+                            if d in rep['distance']:
+                                idx = rep['distance'].index(d)
+                                raw_vals.append(rep['raw'][idx])
+                                norm_vals.append(rep['normalized'][idx])
+                        if raw_vals and norm_vals:
+                            m_r = np.mean(raw_vals)
+                            s_r = np.std(raw_vals, ddof=1) if len(raw_vals) > 1 else 0
+                            m_n = np.mean(norm_vals)
+                            s_n = np.std(norm_vals, ddof=1) if len(norm_vals) > 1 else 0
+                            f.write(f"{t:.2f}\t{d:.1f}\t{m_r:.6f}\t{s_r:.6f}\t{m_n:.6f}\t{s_n:.6f}\n")
             messagebox.showinfo("Export", f"Data exported as TXT:\n{file_path}")
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
+
 
 
 if __name__ == "__main__":
