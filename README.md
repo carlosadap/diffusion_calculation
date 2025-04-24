@@ -40,14 +40,16 @@ This repository provides a complete toolkit for extracting, normalizing, and vis
   - Typically: `1_brightfield.tiff` (reference image)
   - ~37 grayscale images over time, one per timepoint
 
-### 3. Data Analysis (Python)
+### 3. Data Analysis
 
-> **No MATLAB or Excel required!**
-> Place your analysis script in the same directory as the image folders.
+> **No Excel required!**
+> Use the MatLab script to generate the ".txt" files. The MatLab analysis script should be in the same directory as the image folders.
+> Use the Python app to analyze, plot and export the data
+> _Alternatively_, use Origin to plot the data
 
 **Typical workflow:**
 
-1. **Configure the script**:
+1. **Configure the MatLab script**: (_to be automated_)
    - Set the correct folder/chip name and desired output file name.
    - Defaults:
      ```
@@ -66,14 +68,14 @@ This repository provides a complete toolkit for extracting, normalizing, and vis
      - Each line = one image/timepoint
      - Each value = intensity at a position along the line
 
-### 4. Data Processing
+### 4. Data Processing (*automated*)
 
-- Import the `.txt` file (e.g., pandas, Excel, or Origin).
+- Import the `.txt` file with the python app.
 - Transpose if needed: **columns = time, rows = position along the line**
 - **Source**: For each timepoint in each chip, calculate the average of the first five data points.
 - **Sink**: For each timepoint in each chip, calculate the average of the last five data points.
 
-### 5. Normalization
+### 5. Normalization (*automated*)
 
 - Set 100% as the *maximum* source value, and 0% as the *minimum* sink value.
 - For each data point:
@@ -88,17 +90,14 @@ This repository provides a complete toolkit for extracting, normalizing, and vis
 
 ### 6. Visualization & Output
 
-#### Plotting
+#### Plotting (*automated*)
 
 - Graphs can be generated via Python (`matplotlib`) or imported into Origin.
-- Save graphs as `.svg` for high-quality, editable vector graphics (perfect for Adobe Illustrator).
-- Example:
-    ```
-    plt.plot(time_axis, normalized.mean(axis=0))
-    plt.savefig("diffusion_plot.svg", format='svg', dpi=300)
-    ```
+- Define the parameters in the app
+- Use the image
+- _or_ click export button and choose the extension (`.svg` and `.txt` are supported)
 
-#### Diffusion Distance (Advanced)
+#### Diffusion Distance (Advanced - _to be implemented_)
 
 - The analysis includes calculating diffusion distances at user-defined thresholds (for example, where the normalized value crosses 50%).
 - Output is compatible with further vector editing.
@@ -106,11 +105,13 @@ This repository provides a complete toolkit for extracting, normalizing, and vis
 ---
 
 ## Priority Features & Roadmap
-
-1. **[X]** Import `.txt`, output normalized values (Python first).
-2. **[X]** Calculate diffusion distances based on user-defined thresholds.
-3. **[ ]** Export graphics in `.svg` format (Adobe Illustrator compatible).
-4. **[ ]** Option to fully analyze with Python for all steps.
+1. **[X]**  Import .txt, plot normalized graphs
+2. **[X]**  Plot normalized graphs over time, given one position
+3. **[X]**  Plot normalized Source and Sink regions
+4. **[X]**  Perform standard deviation, include in the plots
+5. **[X]**  Export into “.txt” and “.svg” formats
+6. **[ ]**  Calculate the diffusion distance
+7. **[ ]**  Option to fully analyze with Python all the steps
 
 ---
 

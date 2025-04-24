@@ -376,7 +376,7 @@ class FluorescenceAnalyzer:
 
     def export_plot_dialog(self):
         filetypes = [("SVG file", "*.svg"), ("Text file", "*.txt")]
-        file_path = filedialog.asksaveasfilename(defaultextension=".svg", filetypes=filetypes)
+        file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=filetypes)
         if not file_path:
             return
 
